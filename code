@@ -1,82 +1,91 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <title>District Lookup</title>
+</head>
 <body>
 
-<input type="text" id="keyInput" list="streetOptions" oninput="document.getElementById('valueOutput').innerHTML = ''">
-<datalist id="streetOptions"></datalist>
+    <input type="text" id="keyInput" list="streetOptions" placeholder="Start typing a street..." oninput="document.getElementById('valueOutput').innerHTML = ''">
+    <datalist id="streetOptions"></datalist>
 
-<button onclick="displayValueByKey()"style="background-color: #19D419; color:white;">Get Results</button>
-<button onclick="resetApp()"style="background-color: #f44336; color: white;">Clear Results</button>
+    <button onclick="displayValueByKey()" style="background-color: #19D419; color:white; cursor:pointer;">Get Results</button>
+    <button onclick="resetApp()" style="background-color: #f44336; color: white; cursor:pointer;">Clear Results</button>
 
-<p><span id="valueOutput"></span></p>
+    <p><span id="valueOutput"></span></p>
 
 <script>
-function clearAll() {
-    // Clear the input field
-    document.getElementById('keyInput').value = "";
-    
-    // Clear the result text
-    document.getElementById('valueOutput').innerHTML = "";
-    
-    // Put the cursor back in the box so you can type immediately
-    document.getElementById('keyInput').focus();
+let locationData = [];
+
+// 1. Fetch data using the PERMANENT raw link (No token needed)
+async function loadData() {
+    const url = 'https://raw.githubusercontent.com';
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Could not fetch data');
+        locationData = await response.json();
+        setupDatalist();
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('valueOutput').innerText = "Error loading data. Make sure the file is public on GitHub.";
+    }
 }
 
-
-const locationData = [
-    {///fetch address info as JSON object
-];
-
-// Populate the Datalist Dropdown automatically
+// 2. Build the dropdown list
 function setupDatalist() {
     const dataList = document.getElementById('streetOptions');
+    dataList.innerHTML = ""; 
     locationData.forEach(item => {
-        let option = document.createElement('option');
-        option.value = item.STREET;
-        dataList.appendChild(option);
+        if(item.STREET) {
+            let option = document.createElement('option');
+            option.value = item.STREET;
+            dataList.appendChild(option);
+        }
     });
 }
 
+// 3. Find and Show Results
 function displayValueByKey() {
     const input = document.getElementById('keyInput').value.trim().toLowerCase();
     const output = document.getElementById('valueOutput');
     
-    // Find the street (case-insensitive)
-    const result = locationData.find(loc => loc.STREET.toLowerCase() === input);
+    if (!input) {
+        output.textContent = "Please enter a street name.";
+        return;
+    }
+
+    const result = locationData.find(loc => loc.STREET && loc.STREET.toLowerCase() === input);
 
     if (result) {
-        // Accessing keys like "VILLAGE " using bracket notation because of the trailing space
-        const village = result["VILLAGE "] || "N/A";
+        // Handling keys with trailing spaces from your JSON
         const district = result["DISTRICT"] || "N/A";
-        const type = result["TYPE "] || "N/A";
-        const unit = result["UNIT NUMBER"] || "N/A";
-        const county = result["COUNTY "] || "N/A";
-        const city = result["CITY "] || "N/A";
-        const villa = result["VILLAS "] || "N/A";
+        const village  = result["VILLAGE "] || result["VILLAGE"] || "N/A";
+        const unit     = result["UNIT NUMBER"] || "N/A";
+        const county   = result["COUNTY "] || result["COUNTY"] || "N/A";
+        const type     = result["TYPE "] || "N/A";
+        const villa    = result["VILLAS"] || result["VILLAS "] || "N/A";
 
-
-        output.innerHTML = `<strong>District:</strong> ${district} <br> <strong>Village:</strong> ${village} <br> <strong>Villas:</strong> ${villa} <br> <strong>Type:</strong> ${type} <br> <strong>Unit</strong> ${unit} <br> <strong>County:</strong> ${county} <br> <strong>City:</strong> ${city}`;
+        output.innerHTML = `
+            <strong>District:</strong> ${district} <br>
+            <strong>Village:</strong> ${village} <br>
+            <strong>Villas:</strong> ${villa} <br>
+            <strong>Type:</strong> ${type} <br>
+            <strong>Unit:</strong> ${unit} <br>
+            <strong>County:</strong> ${county}
+        `;
     } else {
         output.textContent = "Street not found. Please select from the list.";
-    
     }
 }
 
-// Initialize the list on page load
-setupDatalist();
+// 4. Clear Everything
 function resetApp() {
-    // Target the input box and set its value to an empty string
-    const inputField = document.getElementById('keyInput');
-    inputField.value = "";
-    
-    // Target the result span and clear its content
-    const outputArea = document.getElementById('valueOutput');
-    outputArea.innerHTML = "";
-    
-    // Optional: Bring the cursor back to the input box immediately
-    inputField.focus();
+    document.getElementById('keyInput').value = "";
+    document.getElementById('valueOutput').innerHTML = "";
+    document.getElementById('keyInput').focus();
 }
 
+// Initialize on load
+loadData();
 </script>
 
 </body>
